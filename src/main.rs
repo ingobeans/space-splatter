@@ -61,6 +61,8 @@ impl<'a> Game<'a> {
             health: 20.0,
             animation_time: 0.0,
             moving_left: false,
+            path: None,
+            time_til_pathfind: 0.0,
         };
 
         Self {
@@ -96,7 +98,7 @@ impl<'a> Game<'a> {
             DrawTextureParams::default(),
         );
         for enemy in self.enemies.iter_mut() {
-            enemy.update(delta_time, &mut self.player);
+            enemy.update(delta_time, &mut self.player, &self.world);
             enemy.draw(self.assets);
         }
         self.player.draw(self.assets);

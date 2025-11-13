@@ -1,6 +1,11 @@
+use std::sync::OnceLock;
+
 use macroquad::prelude::*;
+
 pub const SCREEN_WIDTH: f32 = 256.0 * 2.0;
 pub const SCREEN_HEIGHT: f32 = 144.0 * 2.0;
+
+pub const TILES_HORIZONTAL: OnceLock<usize> = OnceLock::new();
 
 pub fn create_camera(w: f32, h: f32) -> Camera2D {
     let rt = render_target(w as u32, h as u32);

@@ -1,3 +1,5 @@
+use std::iter::Map;
+
 use asefile::{self, AsepriteFile};
 use image::EncodableLayout;
 use macroquad::prelude::*;
@@ -158,8 +160,64 @@ pub struct World {
     pub y_min: i16,
     pub y_max: i16,
 }
+
+fn get_tile(chunks: &[&Chunk], x: i16, y: i16) -> i16 {
+    let cx = ((x as f32 / 16.0).floor() * 16.0) as i16;
+    let cy = ((y as f32 / 16.0).floor() * 16.0) as i16;
+    let Some(chunk) = chunks.iter().find(|f| f.x == cx && f.y == cy) else {
+        return 0;
+    };
+    let local_x = x - chunk.x;
+    let local_y = y - chunk.y;
+    chunk.tile_at(local_x as _, local_y as _).unwrap_or(0)
+}
+type SuccessorIterator = Map<std::vec::IntoIter<(i16, i16)>, fn((i16, i16)) -> ((i16, i16), i16)>;
+
+fn generate_successors(pos: (i16, i16), chunks: &[&Chunk]) -> SuccessorIterator {
+    let mut candidates = vec![(pos.0 + 1, pos.1), (pos.0, pos.1 + 1)];
+    if pos.0 > 0 {
+        candidates.push((pos.0 - 1, pos.1));
+    }
+    if pos.1 > 0 {
+        candidates.push((pos.0, pos.1 - 1));
+    }
+    candidates.retain(|(cx, cy)| get_tile(chunks, *cx, *cy) == 0);
+    fn map_function(p: (i16, i16)) -> ((i16, i16), i16) {
+        (p, 1)
+    }
+    let mapped: SuccessorIterator = candidates.into_iter().map(map_function);
+    mapped
+}
 #[expect(dead_code)]
 impl World {
+    pub fn pathfind(&self, from: Vec2, to: Vec2) -> Option<(Vec<(i16, i16)>, i16)> {
+        let to = to / 16.0;
+        let from = from / 16.0;
+        let tiles: [Vec2; 4] = [
+            from - vec2(1.0, 0.0),
+            from - vec2(0.0, 1.0),
+            from + vec2(1.0, 0.0),
+            from + vec2(0.0, 1.0),
+        ];
+        let chunks_pos: [(i16, i16); 4] = std::array::from_fn(|f| {
+            let cx = ((tiles[f].x / 16.0).floor() * 16.0) as i16;
+            let cy = ((tiles[f].y / 16.0).floor() * 16.0) as i16;
+            (cx, cy)
+        });
+        let chunks: Vec<&Chunk> = self
+            .collision
+            .iter()
+            .filter(|f| chunks_pos.contains(&(f.x, f.y)))
+            .collect();
+        let to = (to.x as i16, to.y as i16);
+        let result = pathfinding::prelude::astar(
+            &(from.x as i16, from.y as i16),
+            |p| generate_successors(*p, &chunks),
+            |&(x, y)| (to.0.abs_diff(x) as i16 + to.1.abs_diff(y) as i16) / 3,
+            |&p| p == to,
+        );
+        result
+    }
     pub fn get_interactable_spawn(&self, tile_index: i16) -> Option<Vec2> {
         for chunk in self.interactable.iter() {
             for (i, tile) in chunk.tiles.iter().enumerate() {

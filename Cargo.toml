@@ -1,9 +1,10 @@
 [package]
 name = "space-friend"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2024"
 
 [dependencies]
 asefile = "0.3.8"
 macroquad = "0.4.14"
 image = "0.24.9"
+pathfinding = "4.14.0"
