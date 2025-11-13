@@ -6,6 +6,7 @@ use crate::utils::*;
 
 pub struct Assets {
     pub tileset: Spritesheet,
+    pub player: AnimationsGroup,
 }
 impl Default for Assets {
     fn default() -> Self {
@@ -14,12 +15,99 @@ impl Default for Assets {
                 load_ase_texture(include_bytes!("../assets/tileset.ase"), None),
                 16.0,
             ),
+            player: AnimationsGroup::from_file(include_bytes!("../assets/player.ase")),
         }
     }
 }
 
 pub struct StarsBackground {
     stars: Vec<(Vec2, f32)>,
+}
+pub struct AnimationsGroup {
+    pub file: AsepriteFile,
+    pub animations: Vec<Animation>,
+}
+impl AnimationsGroup {
+    pub fn from_file(bytes: &[u8]) -> Self {
+        let ase = AsepriteFile::read(bytes).unwrap();
+        let mut frames = Vec::new();
+        let mut total_length = 0;
+        for index in 0..ase.num_frames() {
+            let frame = ase.frame(index);
+            let img = frame.image();
+            let new = Image {
+                width: img.width() as u16,
+                height: img.height() as u16,
+                bytes: img.as_bytes().to_vec(),
+            };
+            let duration = frame.duration();
+            total_length += duration;
+            let texture = Texture2D::from_image(&new);
+            frames.push((texture, duration));
+        }
+        let mut tag_frames = Vec::new();
+        let mut offset = 0;
+
+        for i in 0..ase.num_tags() {
+            let tag = ase.get_tag(i).unwrap();
+            let (start, end) = (tag.from_frame() as usize, tag.to_frame() as usize);
+            let mut total_length = 0;
+            let included_frames: Vec<(Texture2D, u32)> = frames
+                .extract_if((start - offset)..(end - offset + 1), |_| true)
+                .collect();
+            for f in included_frames.iter() {
+                total_length += f.1;
+            }
+            offset += end.abs_diff(start) + 1;
+            tag_frames.push(Animation {
+                frames: included_frames,
+                total_length,
+            });
+        }
+        Self {
+            file: ase,
+            animations: tag_frames,
+        }
+    }
+}
+pub struct Animation {
+    frames: Vec<(Texture2D, u32)>,
+    pub total_length: u32,
+}
+impl Animation {
+    pub fn from_file(bytes: &[u8]) -> Self {
+        let ase = AsepriteFile::read(bytes).unwrap();
+        let mut frames = Vec::new();
+        let mut total_length = 0;
+        for index in 0..ase.num_frames() {
+            let frame = ase.frame(index);
+            let img = frame.image();
+            let new = Image {
+                width: img.width() as u16,
+                height: img.height() as u16,
+                bytes: img.as_bytes().to_vec(),
+            };
+            let duration = frame.duration();
+            total_length += duration;
+            let texture = Texture2D::from_image(&new);
+            frames.push((texture, duration));
+        }
+        Self {
+            frames,
+            total_length,
+        }
+    }
+    pub fn get_at_time(&self, mut time: u32) -> &Texture2D {
+        time %= self.total_length;
+        for (texture, length) in self.frames.iter() {
+            if time >= *length {
+                time -= length;
+            } else {
+                return texture;
+            }
+        }
+        panic!()
+    }
 }
 const MAX_STAR_SPEED: f32 = 10.0;
 const MIN_STAR_SPEED: f32 = 5.0;
