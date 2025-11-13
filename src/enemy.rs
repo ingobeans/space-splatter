@@ -43,11 +43,12 @@ impl Enemy {
         if delta.length() > 0.0 {
             self.animation_time += delta_time;
             self.time_til_pathfind -= delta_time;
-            self.moving_left = delta.x < 0.0;
 
             if self.path.is_none() || self.time_til_pathfind <= 0.0 {
                 self.time_til_pathfind = 2.0;
-                self.path = world.pathfind(self.pos, player.pos).map(|f| f.0.into());
+                self.path = world
+                    .pathfind(self.pos, player.pos + 8.0)
+                    .map(|f| f.0.into());
             }
             if let Some(path) = &mut self.path
                 && let Some((x, y)) = path.get(1)
@@ -56,6 +57,7 @@ impl Enemy {
                 if next.distance(self.pos) < 4.0 {
                     path.pop_front();
                 }
+                self.moving_left = (next - self.pos).x > 0.0;
 
                 self.pos += (next - self.pos).normalize() * delta_time * self.ty.speed;
             }
