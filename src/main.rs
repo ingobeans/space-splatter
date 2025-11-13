@@ -21,7 +21,6 @@ impl<'a> Game<'a> {
 
         let world_width = ((world.x_max - world.x_min) * 16) as f32 + 16.0 * 16.0;
         let world_height = ((world.y_max - world.y_min) * 16) as f32 + 16.0 * 16.0;
-        dbg!(world_width, world_height);
 
         // render world
         let mut world_camera_bg = create_camera(world_width, world_height);

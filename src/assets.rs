@@ -38,6 +38,7 @@ impl StarsBackground {
         Self { stars }
     }
     pub fn draw(&mut self, delta_time: f32, offset: Vec2) {
+        self.stars.sort_by(|a, b| a.1.total_cmp(&b.1));
         for (pos, star_speed) in self.stars.iter_mut() {
             pos.y += delta_time * *star_speed;
             if pos.y > SCREEN_HEIGHT {
