@@ -27,7 +27,7 @@ pub const GREENO: EnemyType = EnemyType {
         );
     },
     health: 20.0,
-    speed: 50.0,
+    speed: 25.0,
     pathfind: false,
 };
 

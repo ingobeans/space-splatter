@@ -73,7 +73,8 @@ impl<'a> Game<'a> {
         let scale_factor =
             (actual_screen_width / SCREEN_WIDTH).min(actual_screen_height / SCREEN_HEIGHT);
 
-        self.player.update(delta_time, &self.world);
+        self.player
+            .update(delta_time, &self.world, &mut self.enemies);
         self.pixel_camera.target = self.player.camera_pos.floor();
         set_camera(&self.pixel_camera);
         clear_background(BLACK);
