@@ -39,6 +39,9 @@ impl<'a> Game<'a> {
         for chunk in &world.collision {
             chunk.draw(assets);
         }
+        for chunk in &world.background_details {
+            chunk.draw(assets);
+        }
         let mut world_camera_fg = create_camera(world_width, world_height);
         world_camera_fg.target = vec2(
             (world.x_min + world.x_max + 16) as f32 / 2.0 * 16.0,

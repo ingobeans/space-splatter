@@ -155,6 +155,7 @@ pub struct World {
     pub collision: Vec<Chunk>,
     pub details: Vec<Chunk>,
     pub background: Vec<Chunk>,
+    pub background_details: Vec<Chunk>,
     pub interactable: Vec<Chunk>,
 
     pub x_min: i16,
@@ -251,11 +252,13 @@ impl Default for World {
         let detail = get_layer(xml, "Detail");
         let interactable = get_layer(xml, "Interactable");
         let background = get_layer(xml, "Background");
+        let background_details = get_layer(xml, "BackgroundDetails");
         let mut world = World {
             collision: get_all_chunks(collision),
             details: get_all_chunks(detail),
             background: get_all_chunks(background),
             interactable: get_all_chunks(interactable),
+            background_details: get_all_chunks(background_details),
             x_min: 999,
             y_min: 999,
             y_max: -999,
