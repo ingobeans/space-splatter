@@ -91,6 +91,9 @@ impl<'a> Game<'a> {
             WHITE,
             DrawTextureParams::default(),
         );
+        for ((x, y), (entity, tile)) in self.world.tile_entities.iter() {
+            entity.draw(self.assets, vec2(*x as f32, *y as f32) * 16.0, tile)
+        }
         for enemy in self.enemies.iter_mut() {
             enemy.update(delta_time, &mut self.player, &self.world);
             enemy.draw(self.assets);

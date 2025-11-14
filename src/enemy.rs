@@ -83,8 +83,7 @@ impl Enemy {
         if target.distance(self.pos) > 0.0 {
             self.moving_left = (target - self.pos).x > 0.0;
             self.velocity = (target - self.pos).normalize() * self.ty.speed;
-            self.pos =
-                update_physicsbody(self.pos, &mut self.velocity, delta_time, &world.collision);
+            self.pos = update_physicsbody(self.pos, &mut self.velocity, delta_time, &world);
         }
     }
     pub fn draw(&mut self, assets: &Assets) {

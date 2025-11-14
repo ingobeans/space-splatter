@@ -1,4 +1,4 @@
-use std::iter::Map;
+use std::{collections::HashMap, iter::Map};
 
 use asefile::{self, AsepriteFile};
 use image::EncodableLayout;
@@ -150,6 +150,31 @@ impl StarsBackground {
         }
     }
 }
+pub enum TileEntityUpdateResult {
+    None,
+}
+pub trait TileEntity {
+    fn draw(&self, assets: &Assets, pos: Vec2, tile_index: &i16) {
+        assets.tileset.draw_tile(
+            pos.x,
+            pos.y,
+            (tile_index % 16) as f32,
+            (tile_index / 16) as f32,
+            None,
+        );
+    }
+    fn has_collision(&self) -> bool {
+        false
+    }
+}
+pub struct Barrier {
+    on: bool,
+}
+impl TileEntity for Barrier {
+    fn has_collision(&self) -> bool {
+        true
+    }
+}
 
 pub struct World {
     pub collision: Vec<Chunk>,
@@ -157,6 +182,8 @@ pub struct World {
     pub background: Vec<Chunk>,
     pub background_details: Vec<Chunk>,
     pub interactable: Vec<Chunk>,
+
+    pub tile_entities: HashMap<(i16, i16), (Box<dyn TileEntity>, i16)>,
 
     pub x_min: i16,
     pub x_max: i16,
@@ -259,6 +286,7 @@ impl Default for World {
             background: get_all_chunks(background),
             interactable: get_all_chunks(interactable),
             background_details: get_all_chunks(background_details),
+            tile_entities: HashMap::new(),
             x_min: 999,
             y_min: 999,
             y_max: -999,
@@ -284,6 +312,22 @@ impl Default for World {
                 }
                 if chunk.y > world.y_max {
                     world.y_max = chunk.y;
+                }
+            }
+        }
+
+        for chunk in &world.interactable {
+            for (index, tile) in chunk.tiles.iter().enumerate() {
+                let tile = tile - 1;
+                if tile <= -1 {
+                    continue;
+                }
+                let x = (index % 16) as i16 + chunk.x;
+                let y = (index / 16) as i16 + chunk.y;
+                if tile == 80 {
+                    world
+                        .tile_entities
+                        .insert((x, y), (Box::new(Barrier { on: true }), tile));
                 }
             }
         }

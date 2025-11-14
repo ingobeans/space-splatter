@@ -93,7 +93,7 @@ impl Player {
             .velocity
             .clamp_length_max(2.0 * 70.0)
             .lerp(Vec2::ZERO, friction);
-        let new = update_physicsbody(self.pos, &mut self.velocity, delta_time, &world.collision);
+        let new = update_physicsbody(self.pos, &mut self.velocity, delta_time, &world);
         self.walking &= self.velocity.length_squared() > 0.1;
         self.pos = new;
         let (tx, ty) = vec2_to_tile(self.pos);
@@ -150,12 +150,7 @@ fn get_tile<T: Borrow<Chunk>>(chunks: &[T], x: i16, y: i16) -> i16 {
     chunk.tile_at(local_x as _, local_y as _).unwrap_or(0)
 }
 
-pub fn update_physicsbody(
-    pos: Vec2,
-    velocity: &mut Vec2,
-    delta_time: f32,
-    collision_tiles: &[Chunk],
-) -> Vec2 {
+pub fn update_physicsbody(pos: Vec2, velocity: &mut Vec2, delta_time: f32, world: &World) -> Vec2 {
     let mut new = pos + *velocity * delta_time;
 
     let tile_x = pos.x / 16.0;
@@ -174,14 +169,20 @@ pub fn update_physicsbody(
         (cx, cy)
     });
 
-    let chunks: Vec<&Chunk> = collision_tiles
+    let chunks: Vec<&Chunk> = world
+        .collision
         .iter()
         .filter(|f| chunks_pos.contains(&(f.x, f.y)))
         .collect();
 
     for (tx, ty) in tiles_y {
         let tile = get_tile(&chunks, tx as i16, ty as i16);
-        if tile != 0 {
+        if tile != 0
+            || world
+                .tile_entities
+                .get(&(tx as i16, ty as i16))
+                .is_some_and(|(f, _)| f.has_collision())
+        {
             let c = if velocity.y < 0.0 {
                 tile_y.floor() * 16.0
             } else {
@@ -205,14 +206,20 @@ pub fn update_physicsbody(
         (cx, cy)
     });
 
-    let chunks: Vec<&Chunk> = collision_tiles
+    let chunks: Vec<&Chunk> = world
+        .collision
         .iter()
         .filter(|f| chunks_pos.contains(&(f.x, f.y)))
         .collect();
 
     for (tx, ty) in tiles_x {
         let tile = get_tile(&chunks, tx as i16, ty as i16);
-        if tile != 0 {
+        if tile != 0
+            || world
+                .tile_entities
+                .get(&(tx as i16, ty as i16))
+                .is_some_and(|(f, _)| f.has_collision())
+        {
             let c = if velocity.x < 0.0 {
                 tile_x.floor() * 16.0
             } else {
