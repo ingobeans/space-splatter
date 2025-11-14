@@ -156,7 +156,7 @@ impl<'a> Game<'a> {
         }
     }
 }
-#[macroquad::main("space friend")]
+#[macroquad::main("space splatter")]
 async fn main() {
     let assets = Assets::default();
     let mut game = Game::new(&assets);
