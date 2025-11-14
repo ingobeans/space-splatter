@@ -57,6 +57,7 @@ pub struct Player {
     pub animation_time: f32,
     pub walking: bool,
     pub moving_left: bool,
+    #[expect(dead_code)]
     pub health: f32,
     pub spawned_spawners: Vec<(i16, i16)>,
 }
@@ -93,6 +94,7 @@ impl Player {
             .clamp_length_max(2.0 * 70.0)
             .lerp(Vec2::ZERO, friction);
         let new = update_physicsbody(self.pos, &mut self.velocity, delta_time, &world.collision);
+        self.walking &= self.velocity.length_squared() > 0.1;
         self.pos = new;
         let (tx, ty) = vec2_to_tile(self.pos);
         let (cx, cy) = tile_to_chunk((tx, ty));

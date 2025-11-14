@@ -28,6 +28,7 @@ pub struct StarsBackground {
     stars: Vec<(Vec2, f32)>,
 }
 pub struct AnimationsGroup {
+    #[expect(dead_code)]
     pub file: AsepriteFile,
     pub animations: Vec<Animation>,
 }
@@ -77,6 +78,7 @@ pub struct Animation {
     pub total_length: u32,
 }
 impl Animation {
+    #[expect(dead_code)]
     pub fn from_file(bytes: &[u8]) -> Self {
         let ase = AsepriteFile::read(bytes).unwrap();
         let mut frames = Vec::new();
