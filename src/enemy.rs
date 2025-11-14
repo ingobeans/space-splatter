@@ -86,5 +86,17 @@ impl Enemy {
     }
     pub fn draw(&self, assets: &Assets) {
         (self.ty.draw_fn)(assets, self);
+        let width = 25.0;
+        let height = 4.0;
+        let pos = self.pos.floor() - 16.0 + vec2(0.0, -4.0) + (32.0 - width) / 2.0;
+        draw_rectangle(pos.x - 1.0, pos.y - 1.0, width + 2.0, height + 2.0, BLACK);
+        draw_rectangle(
+            pos.x,
+            pos.y,
+            self.health / self.ty.health * width,
+            height,
+            HEALTHBAR_COLOR,
+        );
     }
 }
+pub const HEALTHBAR_COLOR: Color = Color::from_hex(0x39741f);
