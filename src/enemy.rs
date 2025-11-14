@@ -1,9 +1,8 @@
-use std::{collections::VecDeque, iter::Map};
+use std::collections::VecDeque;
 
 use crate::{
     assets::{Assets, World},
     player::{Player, update_physicsbody},
-    utils::*,
 };
 use macroquad::prelude::*;
 
@@ -86,6 +85,6 @@ impl Enemy {
         }
     }
     pub fn draw(&self, assets: &Assets) {
-        (self.ty.draw_fn)(assets, &self);
+        (self.ty.draw_fn)(assets, self);
     }
 }

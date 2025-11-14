@@ -210,13 +210,12 @@ impl World {
             .filter(|f| chunks_pos.contains(&(f.x, f.y)))
             .collect();
         let to = (to.x as i16, to.y as i16);
-        let result = pathfinding::prelude::astar(
+        pathfinding::prelude::astar(
             &(from.x as i16, from.y as i16),
             |p| generate_successors(*p, &chunks),
             |&(x, y)| (to.0.abs_diff(x) as i16 + to.1.abs_diff(y) as i16) / 3,
             |&p| p == to,
-        );
-        result
+        )
     }
     pub fn get_interactable_spawn(&self, tile_index: i16) -> Option<Vec2> {
         for chunk in self.interactable.iter() {
