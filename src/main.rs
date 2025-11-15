@@ -4,8 +4,8 @@ use crate::{assets::*, enemy::*, player::*, utils::*};
 
 mod assets;
 mod enemy;
+mod graphics;
 mod player;
-mod ui;
 mod utils;
 
 struct Game<'a> {
@@ -18,7 +18,9 @@ struct Game<'a> {
     stars: StarsBackground,
     enemies: Vec<Enemy>,
     projectiles: Vec<Projectile>,
-    escape_pod_pos: Vec2,
+    escape_pod_door: Vec2,
+    escape_pod: Vec2,
+    escaping_animation: f32,
 }
 impl<'a> Game<'a> {
     fn new(assets: &'a Assets) -> Self {
@@ -62,7 +64,8 @@ impl<'a> Game<'a> {
         player.pos = world.get_interactable_spawn(16).unwrap();
 
         Self {
-            escape_pod_pos: world.get_interactable_spawn(128).unwrap() + vec2(0.0, 8.0),
+            escape_pod_door: world.get_interactable_spawn(128).unwrap() + vec2(0.0, 8.0),
+            escape_pod: world.get_interactable_spawn(129).unwrap(),
             player,
             assets,
             world,
@@ -72,6 +75,7 @@ impl<'a> Game<'a> {
             enemies: Vec::with_capacity(10), // todo: adjust capcacity later on?
             stars: StarsBackground::new(),
             projectiles: Vec::with_capacity(10),
+            escaping_animation: 0.0,
         }
     }
     fn update(&mut self) {
@@ -84,13 +88,17 @@ impl<'a> Game<'a> {
         let mouse_x = mouse_x / scale_factor;
         let mouse_y = mouse_y / scale_factor;
 
-        self.player.update(
-            delta_time,
-            &mut self.world,
-            &mut self.enemies,
-            &mut self.projectiles,
-            (mouse_x, mouse_y),
-        );
+        if self.escaping_animation == 0.0 {
+            self.player.update(
+                delta_time,
+                &mut self.world,
+                &mut self.enemies,
+                &mut self.projectiles,
+                (mouse_x, mouse_y),
+            );
+        } else {
+            self.escaping_animation += delta_time;
+        }
         self.pixel_camera.target = self.player.camera_pos.floor();
         set_camera(&self.pixel_camera);
         clear_background(BLACK);
@@ -143,8 +151,9 @@ impl<'a> Game<'a> {
             let pos = vec2(*x as f32, *y as f32) * 16.0;
             (entity.draw)(entity, self.assets, pos);
         }
-
-        self.player.draw(self.assets, (mouse_x, mouse_y));
+        if self.escaping_animation == 0.0 {
+            self.player.draw(self.assets, (mouse_x, mouse_y));
+        }
         self.enemies.retain_mut(|enemy| {
             enemy.update(
                 delta_time,
@@ -173,6 +182,14 @@ impl<'a> Game<'a> {
             WHITE,
             DrawTextureParams::default(),
         );
+        graphics::draw_escape_pod(
+            self.assets,
+            self.escaping_animation,
+            &mut self.player,
+            self.escape_pod,
+            self.escape_pod_door,
+            delta_time,
+        );
         set_default_camera();
         clear_background(BLACK);
         draw_texture_ex(
@@ -188,11 +205,14 @@ impl<'a> Game<'a> {
                 ..Default::default()
             },
         );
-        let by_escape_pod = self.player.pos.distance_squared(self.escape_pod_pos) < 256.0;
+        let by_escape_pod = self.escaping_animation == 0.0
+            && self.player.pos.distance_squared(self.escape_pod_door) < 256.0;
         if by_escape_pod && is_key_pressed(KeyCode::E) {
-            // todo: make player enter escape pod and for it to fly away
+            self.escaping_animation += 0.001;
         }
-        ui::draw_ui(self.assets, &self.player, can_take_weapon, by_escape_pod);
+        if self.escaping_animation == 0.0 {
+            graphics::draw_ui(self.assets, &self.player, can_take_weapon, by_escape_pod);
+        }
     }
 }
 #[macroquad::main("space splatter")]
