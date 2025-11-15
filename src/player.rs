@@ -49,12 +49,80 @@ fn get_connected_spawners(chunks: &[Chunk], start: (i16, i16)) -> Vec<((i16, i16
     result
 }
 
-pub struct Weapon {
-    pub sprite_index: u32,
+pub struct ProjectileType {
+    pub animation_index: i16,
+    pub speed: f32,
+    pub damage: f32,
+}
+pub struct Projectile {
+    pub ty: &'static ProjectileType,
+    pub pos: Vec2,
+    pub dir: Vec2,
+    pub time: f32,
+    pub friendly: bool,
+}
+impl Projectile {
+    pub fn update(
+        &mut self,
+        assets: &Assets,
+        enemies: &mut Vec<Enemy>,
+        player: &mut Player,
+        world: &World,
+        delta_time: f32,
+    ) -> bool {
+        self.pos += self.dir * self.ty.speed * delta_time;
+
+        if self.friendly {
+            if let Some(enemy) = enemies
+                .iter_mut()
+                .find(|enemy| enemy.pos.distance_squared(self.pos) < 256.0)
+            {
+                enemy.health -= self.ty.damage;
+                return false;
+            }
+        } else {
+            if player.pos.distance_squared(self.pos) < 256.0 {
+                player.health -= self.ty.damage;
+                return false;
+            }
+        }
+
+        let (tx, ty) = vec2_to_tile(self.pos);
+        let (cx, cy) = tile_to_chunk((tx, ty));
+        if let Some(chunk) = world.collision.iter().find(|f| f.x == cx && f.y == cy)
+            && let Some(tile) = chunk.tile_at((tx - cx) as _, (ty - cy) as _).map(|f| f - 1)
+            && tile > -1
+        {
+            return false;
+        }
+        draw_texture(
+            assets.projectiles.animations[0].get_at_time((self.time * 1000.0) as u32),
+            self.pos.x.floor() - 8.0,
+            self.pos.y.floor() - 8.0,
+            WHITE,
+        );
+        true
+    }
 }
 
+pub static ENERGY_BALL: ProjectileType = ProjectileType {
+    animation_index: 0,
+    speed: 160.0,
+    damage: 4.0,
+};
+pub struct Weapon {
+    pub sprite_index: u32,
+    pub projectile: &'static ProjectileType,
+    pub attack_delay: f32,
+}
+pub static GUN: Weapon = Weapon {
+    sprite_index: 0,
+    projectile: &ENERGY_BALL,
+    attack_delay: 1.0 / 3.0,
+};
+
 pub struct Player {
-    pub weapon: Option<Weapon>,
+    pub weapon: Option<&'static Weapon>,
     pub pos: Vec2,
     pub camera_pos: Vec2,
     pub velocity: Vec2,
@@ -64,6 +132,7 @@ pub struct Player {
     #[expect(dead_code)]
     pub health: f32,
     pub spawned_spawners: Vec<(i16, i16)>,
+    pub attack_counter: f32,
 }
 impl Player {
     pub fn new() -> Self {
@@ -77,9 +146,17 @@ impl Player {
             moving_left: false,
             health: 100.0,
             spawned_spawners: Vec::new(),
+            attack_counter: 0.0,
         }
     }
-    pub fn update(&mut self, delta_time: f32, world: &mut World, enemies: &mut Vec<Enemy>) {
+    pub fn update(
+        &mut self,
+        delta_time: f32,
+        world: &mut World,
+        enemies: &mut Vec<Enemy>,
+        projectiles: &mut Vec<Projectile>,
+        mouse: (f32, f32),
+    ) {
         self.animation_time += delta_time;
         self.walking = false;
         let axis = get_input_axis();
@@ -92,7 +169,22 @@ impl Player {
             }
             self.velocity += axis.normalize() * delta_time * 3600.0;
         }
-
+        self.attack_counter -= delta_time;
+        if self.attack_counter <= 0.0
+            && let Some(weapon) = self.weapon
+            && is_mouse_button_down(MouseButton::Left)
+        {
+            self.attack_counter = weapon.attack_delay;
+            let new = Projectile {
+                ty: weapon.projectile,
+                time: 0.0,
+                pos: self.pos + 8.0,
+                dir: (vec2(mouse.0, mouse.1) - vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0))
+                    .normalize(),
+                friendly: true,
+            };
+            projectiles.push(new);
+        }
         let friction = if axis.length() == 0.0 { 20.0 } else { 10.0 } * delta_time;
         self.velocity = self
             .velocity
@@ -136,7 +228,7 @@ impl Player {
         self.spawned_spawners.append(&mut new_spawned);
         self.camera_pos = self.pos
     }
-    pub fn draw(&self, assets: &Assets, mouse_x: f32, mouse_y: f32) {
+    pub fn draw(&self, assets: &Assets, mouse: (f32, f32)) {
         draw_texture_ex(
             assets.player.animations[if self.walking { 1 } else { 0 }]
                 .get_at_time((self.animation_time * 1000.0) as u32),
@@ -144,7 +236,7 @@ impl Player {
             self.pos.y.floor(),
             WHITE,
             DrawTextureParams {
-                flip_x: mouse_x < SCREEN_WIDTH / 2.0,
+                flip_x: mouse.0 < SCREEN_WIDTH / 2.0,
                 ..Default::default()
             },
         );
@@ -155,10 +247,10 @@ impl Player {
                 self.pos.y.floor(),
                 WHITE,
                 DrawTextureParams {
-                    rotation: (vec2(mouse_x, mouse_y)
+                    rotation: (vec2(mouse.0, mouse.1)
                         - vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0))
                     .to_angle(),
-                    flip_y: mouse_x < SCREEN_WIDTH / 2.0,
+                    flip_y: mouse.0 < SCREEN_WIDTH / 2.0,
                     pivot: Some(self.pos.floor() + 8.0),
                     ..Default::default()
                 },

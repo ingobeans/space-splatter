@@ -18,6 +18,7 @@ struct Game<'a> {
     stars: StarsBackground,
     enemies: Vec<Enemy>,
     locker_pos: Vec2,
+    projectiles: Vec<Projectile>,
 }
 impl<'a> Game<'a> {
     fn new(assets: &'a Assets) -> Self {
@@ -70,6 +71,7 @@ impl<'a> Game<'a> {
             world_camera_fg,
             enemies: Vec::with_capacity(10), // todo: adjust capcacity later on?
             stars: StarsBackground::new(),
+            projectiles: Vec::with_capacity(10),
         }
     }
     fn update(&mut self) {
@@ -82,8 +84,13 @@ impl<'a> Game<'a> {
         let mouse_x = mouse_x / scale_factor;
         let mouse_y = mouse_y / scale_factor;
 
-        self.player
-            .update(delta_time, &mut self.world, &mut self.enemies);
+        self.player.update(
+            delta_time,
+            &mut self.world,
+            &mut self.enemies,
+            &mut self.projectiles,
+            (mouse_x, mouse_y),
+        );
         self.pixel_camera.target = self.player.camera_pos.floor();
         set_camera(&self.pixel_camera);
         clear_background(BLACK);
@@ -121,11 +128,23 @@ impl<'a> Game<'a> {
             let pos = vec2(*x as f32, *y as f32) * 16.0;
             (entity.draw)(entity, self.assets, pos);
         }
-        for enemy in self.enemies.iter_mut() {
+
+        self.enemies.retain_mut(|enemy| {
             enemy.update(delta_time, &mut self.player, &self.world);
             enemy.draw(self.assets);
-        }
-        self.player.draw(self.assets, mouse_x, mouse_y);
+            enemy.health > 0.0
+        });
+
+        self.player.draw(self.assets, (mouse_x, mouse_y));
+        self.projectiles.retain_mut(|projectile| {
+            projectile.update(
+                self.assets,
+                &mut self.enemies,
+                &mut self.player,
+                &self.world,
+                delta_time,
+            )
+        });
         draw_texture_ex(
             &self.world_camera_fg.render_target.as_ref().unwrap().texture,
             (self.world.x_min * 16) as f32,
@@ -151,7 +170,7 @@ impl<'a> Game<'a> {
         if can_take_weapon {
             ui::draw_tooltip(self.assets);
             if is_key_pressed(KeyCode::E) {
-                self.player.weapon = Some(Weapon { sprite_index: 0 })
+                self.player.weapon = Some(&GUN)
             }
         }
     }
