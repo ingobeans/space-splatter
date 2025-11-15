@@ -204,6 +204,7 @@ impl Player {
         let (cx, cy) = tile_to_chunk((tx, ty));
         let mut new_spawned = Vec::new();
         let mut tile_entities = HashMap::new();
+        let mut new_enemies = Vec::new();
         std::mem::swap(&mut tile_entities, &mut world.tile_entities);
         if let Some(chunk) = world.interactable.iter().find(|f| f.x == cx && f.y == cy)
             && let Some(tile) = chunk.tile_at((tx - cx) as _, (ty - cy) as _).map(|f| f - 1)
@@ -222,7 +223,7 @@ impl Player {
                             &ENEMIES[tile as usize - 96],
                             vec2(x as f32 * 16.0, y as f32 * 16.0),
                         );
-                        enemies.push(enemy);
+                        new_enemies.push(enemy);
                     }
                     64 => {
                         if enemies.is_empty() && self.weapon.is_some() {
@@ -233,6 +234,7 @@ impl Player {
                 }
             }
         }
+        enemies.append(&mut new_enemies);
         std::mem::swap(&mut tile_entities, &mut world.tile_entities);
         self.spawned_spawners.append(&mut new_spawned);
         self.camera_pos = self.pos
