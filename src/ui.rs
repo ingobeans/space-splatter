@@ -6,7 +6,12 @@ use macroquad::prelude::*;
 
 pub const PLAYER_HEALTH_COLOR: Color = Color::from_hex(0x87d1ef);
 
-pub fn draw_ui(assets: &Assets, show_tooltip: bool, player: &Player) {
+pub fn draw_ui(
+    assets: &Assets,
+    player: &Player,
+    show_item_tooltip: bool,
+    show_escape_tooltip: bool,
+) {
     let (actual_screen_width, actual_screen_height) = screen_size();
     let scale_factor = (actual_screen_width / SCREEN_WIDTH)
         .min(actual_screen_height / SCREEN_HEIGHT)
@@ -43,18 +48,25 @@ pub fn draw_ui(assets: &Assets, show_tooltip: bool, player: &Player) {
         },
     );
 
-    if show_tooltip {
-        let x = (actual_screen_width - assets.tooltip.width() * scale_factor) / 2.0;
-        let y = actual_screen_height - assets.tooltip.height() * scale_factor - 4.0 * scale_factor;
+    let tooltip = if show_item_tooltip {
+        Some(&assets.tooltip)
+    } else if show_escape_tooltip {
+        Some(&assets.escape_pod_tooltip)
+    } else {
+        None
+    };
+    if let Some(tooltip) = tooltip {
+        let x = (actual_screen_width - tooltip.width() * scale_factor) / 2.0;
+        let y = actual_screen_height - tooltip.height() * scale_factor - 4.0 * scale_factor;
         draw_texture_ex(
-            &assets.tooltip,
+            &tooltip,
             x,
             y,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(vec2(
-                    assets.tooltip.width() * scale_factor,
-                    assets.tooltip.height() * scale_factor,
+                    tooltip.width() * scale_factor,
+                    tooltip.height() * scale_factor,
                 )),
                 ..Default::default()
             },

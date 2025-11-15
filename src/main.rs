@@ -18,6 +18,7 @@ struct Game<'a> {
     stars: StarsBackground,
     enemies: Vec<Enemy>,
     projectiles: Vec<Projectile>,
+    escape_pod_pos: Vec2,
 }
 impl<'a> Game<'a> {
     fn new(assets: &'a Assets) -> Self {
@@ -61,6 +62,7 @@ impl<'a> Game<'a> {
         player.pos = world.get_interactable_spawn(16).unwrap();
 
         Self {
+            escape_pod_pos: world.get_interactable_spawn(128).unwrap() + vec2(0.0, 8.0),
             player,
             assets,
             world,
@@ -186,7 +188,11 @@ impl<'a> Game<'a> {
                 ..Default::default()
             },
         );
-        ui::draw_ui(self.assets, can_take_weapon, &self.player);
+        let by_escape_pod = self.player.pos.distance_squared(self.escape_pod_pos) < 256.0;
+        if by_escape_pod && is_key_pressed(KeyCode::E) {
+            // todo: make player enter escape pod and for it to fly away
+        }
+        ui::draw_ui(self.assets, &self.player, can_take_weapon, by_escape_pod);
     }
 }
 #[macroquad::main("space splatter")]

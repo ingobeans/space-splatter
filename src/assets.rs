@@ -16,6 +16,7 @@ pub struct Assets {
     pub projectiles: AnimationsGroup,
     pub locker: Animation,
     pub tooltip: Texture2D,
+    pub escape_pod_tooltip: Texture2D,
     pub healthbar: Texture2D,
 }
 impl Default for Assets {
@@ -30,6 +31,10 @@ impl Default for Assets {
             projectiles: AnimationsGroup::from_file(include_bytes!("../assets/projectiles.ase")),
             locker: Animation::from_file(include_bytes!("../assets/locker.ase")),
             tooltip: load_ase_texture(include_bytes!("../assets/tooltip.ase"), None),
+            escape_pod_tooltip: load_ase_texture(
+                include_bytes!("../assets/escape_pod_tooltip.ase"),
+                None,
+            ),
             healthbar: load_ase_texture(include_bytes!("../assets/healthbar.ase"), None),
         }
     }
